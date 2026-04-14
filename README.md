@@ -1,16 +1,8 @@
 # Receptionist Voice Agent Demo
 
-A real-time voice agent that acts as a business receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/voice-agents/speech-to-speech). The agent answers phone calls, checks appointment availability, books appointments, and transfers callers to a live person when needed.
+A real-time voice agent that acts as a business receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/voice-agents/speech-to-speech). Walk through a guided setup, configure your business, pick a voice, and start talking — all in the browser.
 
-Includes a full interactive configuration UI — pick a voice, edit business details, manage services, and view booked appointments on a calendar. All changes save locally and persist across restarts.
-
-## What it does
-
-- **Answers questions** about the business — hours, location, services, insurance, providers
-- **Checks appointment availability** for any date and service
-- **Books appointments** by collecting patient info through natural conversation
-- **Cancels appointments** by confirmation number
-- **Transfers to a live person** when the caller asks or has a complex issue
+**This is a demo.** Appointments, availability, and call transfers are all simulated with in-memory data. Nothing connects to a real calendar, CRM, or phone system. It's designed to show what a production receptionist agent could look and feel like.
 
 ## Quick start
 
@@ -22,21 +14,40 @@ python3 receptionist.py
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Interactive configuration
+## Onboarding flow
 
-The left sidebar lets you customize everything without touching code:
+When you open the app, you walk through a 4-step setup:
 
-| Section | What you can change |
-|---------|-------------------|
-| **Voice** | Pick from 18 voices — click a card to switch |
-| **Business** | Name, receptionist name, phone, address |
-| **Hours** | Set hours for each day of the week |
-| **Services** | Add, edit, or remove services with duration and price |
-| **Providers** | Manage the provider list |
-| **Insurance** | Manage accepted insurance plans |
-| **Appointments** | Monthly calendar showing booked appointments |
+1. **Pick a voice** — 18 voice cards to choose from (Dawn is the default)
+2. **Business details** — name, receptionist name, phone, address, and hours
+3. **Services & providers** — add/edit/remove services, providers, and insurance plans
+4. **Review & launch** — see a summary of your config, view the appointment calendar, and hit Launch
 
-Changes save to `config.json` automatically and take effect on the next conversation.
+Each step animates in with a progress bar at the top. Everything auto-saves to `config.json` as you edit — no save button needed.
+
+## During a call
+
+Once you launch, the app switches to a call screen with:
+
+- Live transcript — your words and the agent's responses as chat bubbles
+- Status indicator — Connecting, Ready, Listening, Speaking
+- Tool activity — shows when the agent is looking something up or booking
+- **End Call** — disconnects and takes you back to the review screen
+- **Settings** — goes back to step 1 so you can reconfigure
+
+## What's simulated (not real)
+
+This is a self-contained demo — all backend logic runs in-memory with no external integrations:
+
+| Feature | What it does in the demo | What you'd replace it with |
+|---------|-------------------------|---------------------------|
+| **Availability** | Randomly generates open slots for any date | Your scheduling system API (Calendly, Acuity, etc.) |
+| **Booking** | Stores appointments in a Python dict, gone on restart | Your CRM or database (Salesforce, HubSpot, etc.) |
+| **Cancellation** | Removes from the in-memory dict | Your scheduling system API |
+| **Business info** | Reads from `config.json` on disk | Your CMS or database |
+| **Call transfer** | Returns a "transferring" message, doesn't actually transfer | Your telephony system (Twilio, etc.) |
+
+Each tool function in `receptionist.py` is commented with where to plug in real API calls — search for `Replace with` in the code.
 
 ## How it works
 
@@ -44,8 +55,8 @@ Two files, no build step:
 
 | File | Purpose |
 |------|---------|
-| `receptionist.py` | Python backend — aiohttp server, WebSocket proxy, tool execution, config REST API |
-| `receptionist.html` | Browser frontend — config sidebar, voice picker, calendar, AudioWorklet capture, chat UI |
+| `receptionist.py` | Python backend — aiohttp server, WebSocket proxy to AssemblyAI, server-side tool execution, config REST API |
+| `receptionist.html` | Browser frontend — onboarding UI, voice picker, calendar, AudioWorklet mic capture, chat UI |
 
 ```
 Browser (config) → POST /api/config → saves to config.json
