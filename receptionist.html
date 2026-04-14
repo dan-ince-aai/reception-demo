@@ -1040,7 +1040,8 @@ async function startCall() {
   const captureNode = new AudioWorkletNode(audioCtx, "capture-processor");
   source.connect(captureNode);
 
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
   captureNode.port.onmessage = (e) => {
     if (!sessionReady || ws.readyState !== WebSocket.OPEN) return;
     const bytes = new Uint8Array(e.data);
