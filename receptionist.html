@@ -8,343 +8,399 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0f1117;
-  --surface: #151722;
-  --surface2: #1e2130;
-  --border: #282b3d;
-  --text: #e1e4ea;
-  --text-dim: #8b8fa3;
-  --accent: #2563eb;
-  --accent-hover: #3b82f6;
-  --green: #22c55e;
-  --purple: #a855f7;
-  --yellow: #eab308;
-  --red: #ef4444;
-  --radius: 10px;
+  --bg: #0a0b10;
+  --surface: #12131a;
+  --surface2: #1a1c26;
+  --surface3: #222532;
+  --border: #2a2d3d;
+  --text: #e4e7f0;
+  --text-dim: #7b7f96;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --accent-glow: rgba(99, 102, 241, 0.25);
+  --green: #34d399;
+  --green-glow: rgba(52, 211, 153, 0.2);
+  --purple: #a78bfa;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --red-glow: rgba(248, 113, 113, 0.2);
+  --radius: 12px;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   height: 100vh;
-  display: flex;
   overflow: hidden;
 }
 
-/* ===== SIDEBAR ===== */
-#sidebar {
-  width: 380px;
-  min-width: 380px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+/* ===== Screens ===== */
+.screen {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+}
+
+/* ===== ONBOARDING ===== */
+#onboarding {
+  z-index: 3;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: margin-left 0.3s ease, opacity 0.3s ease;
-}
-#sidebar.collapsed {
-  margin-left: -380px;
-  opacity: 0;
-  pointer-events: none;
 }
 
-#sidebar-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Progress bar */
+#progress-bar {
+  height: 3px;
+  background: var(--surface2);
+  flex-shrink: 0;
 }
-#sidebar-header h2 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
+#progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 2px 2px 0;
 }
 
-#sidebar-scroll {
+/* Step container */
+#step-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
 }
 
-.section { margin-bottom: 24px; }
-.section-title {
-  font-size: 11px;
+.step {
+  display: none;
+  flex-direction: column;
+  padding: 40px 32px 120px;
+  animation: stepIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+}
+.step.active { display: flex; }
+
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+  color: var(--accent2);
+  margin-bottom: 12px;
 }
-
-/* Save indicator */
-#save-indicator {
+.step-badge .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
-  color: var(--green);
-  opacity: 0;
-  transition: opacity 0.3s;
+  color: var(--accent2);
 }
-#save-indicator.visible { opacity: 1; }
 
-/* --- Voice picker --- */
+.step h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.step .subtitle {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+/* Voice cards */
 .voice-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 10px;
 }
 .voice-card {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s;
-  background: var(--bg);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
 }
-.voice-card:hover { border-color: var(--accent); }
+.voice-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-glow), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.voice-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.voice-card:hover::before { opacity: 1; }
 .voice-card.selected {
   border-color: var(--accent);
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 20px var(--accent-glow);
 }
-.voice-card .voice-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
+.voice-card.selected::before { opacity: 1; }
+.voice-card .check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
 }
-.voice-card .voice-desc {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
+.voice-card.selected .check { display: flex; }
+.voice-name { font-size: 14px; font-weight: 600; color: var(--text); position: relative; }
+.voice-desc { font-size: 12px; color: var(--text-dim); margin-top: 3px; position: relative; }
 
-/* --- Form inputs --- */
-.field { margin-bottom: 10px; }
+/* Form fields */
+.fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 600px) { .fields-row { grid-template-columns: 1fr; } }
+
+.field { margin-bottom: 14px; }
 .field label {
   display: block;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-dim);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-.field input, .field select {
+.field input {
   width: 100%;
-  padding: 7px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: all 0.2s;
 }
-.field input:focus { border-color: var(--accent); }
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
 
-/* --- Hours editor --- */
-.hours-grid { display: flex; flex-direction: column; gap: 4px; }
+/* Hours */
+.hours-grid { display: flex; flex-direction: column; gap: 6px; }
 .hours-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 13px;
 }
 .hours-row .day {
-  width: 38px;
-  font-weight: 500;
+  width: 40px;
+  font-weight: 600;
   color: var(--text-dim);
   flex-shrink: 0;
 }
 .hours-row input {
   flex: 1;
-  padding: 5px 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
+  transition: all 0.2s;
 }
-.hours-row input:focus { border-color: var(--accent); }
+.hours-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 
-/* --- Editable list (services, providers, insurance) --- */
-.list-items { display: flex; flex-direction: column; gap: 4px; }
+/* Lists */
+.list-items { display: flex; flex-direction: column; gap: 6px; }
 .list-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 12px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  transition: border-color 0.15s;
 }
+.list-item:focus-within { border-color: var(--accent); }
 .list-item input {
   flex: 1;
   background: none;
   border: none;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
   min-width: 0;
 }
-.list-item .duration-price {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.list-item .duration-price input {
-  width: 50px;
-  text-align: right;
-  color: var(--text-dim);
-}
-.list-item .remove-btn {
+.list-item .dp { display: flex; gap: 6px; flex-shrink: 0; }
+.list-item .dp input { width: 56px; text-align: right; color: var(--text-dim); }
+.list-item .rm {
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   padding: 0 2px;
   line-height: 1;
   flex-shrink: 0;
+  transition: color 0.15s;
 }
-.list-item .remove-btn:hover { color: var(--red); }
+.list-item .rm:hover { color: var(--red); }
 .add-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 6px;
-  padding: 4px 10px;
+  margin-top: 8px;
+  padding: 7px 14px;
   background: none;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* --- Calendar --- */
-.calendar { user-select: none; }
-.cal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.cal-header span {
-  font-size: 13px;
-  font-weight: 600;
-}
+/* Calendar */
+.calendar { user-select: none; max-width: 360px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-header span { font-size: 14px; font-weight: 600; }
 .cal-nav {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 16px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: none; border: none; color: var(--text-dim); font-size: 18px;
+  cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.15s;
 }
 .cal-nav:hover { background: var(--surface2); color: var(--text); }
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-  text-align: center;
-  font-size: 11px;
-}
-.cal-grid .day-label {
-  color: var(--text-dim);
-  font-weight: 600;
-  padding: 4px 0;
-}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 12px; }
+.cal-grid .day-label { color: var(--text-dim); font-weight: 600; padding: 6px 0; }
 .cal-day {
-  padding: 6px 2px;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  color: var(--text-dim);
-  transition: background 0.15s;
+  padding: 8px 2px; border-radius: 8px; cursor: pointer; color: var(--text-dim);
+  transition: all 0.15s; position: relative;
 }
-.cal-day:hover { background: var(--surface2); }
-.cal-day.today { color: var(--accent); font-weight: 700; }
+.cal-day:hover { background: var(--surface2); color: var(--text); }
+.cal-day.today { color: var(--accent2); font-weight: 700; }
 .cal-day.has-booking::after {
-  content: "";
-  display: block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--green);
-  margin: 2px auto 0;
+  content: ""; display: block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); margin: 3px auto 0;
 }
-.cal-day.other-month { opacity: 0.3; }
+.cal-day.other-month { opacity: 0.2; }
 
-/* Booking popover */
 #booking-popover {
-  display: none;
-  margin-top: 8px;
-  padding: 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12px;
+  display: none; margin-top: 10px; padding: 12px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px;
 }
 #booking-popover.visible { display: block; }
-#booking-popover h4 {
-  font-size: 12px;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-.booking-entry {
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-dim);
-}
+#booking-popover h4 { font-size: 13px; margin-bottom: 8px; color: var(--text); }
+.booking-entry { padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--text-dim); }
 .booking-entry:last-child { border-bottom: none; }
 .booking-entry strong { color: var(--text); }
 .no-bookings { color: var(--text-dim); font-style: italic; }
 
+/* Nav buttons (bottom) */
+#nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 20px 32px;
+  background: linear-gradient(transparent, var(--bg) 40%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+#nav-bar.hidden { display: none; }
 
-/* ===== MAIN (right side) ===== */
-#main {
-  flex: 1;
+.nav-btn {
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+#prev-btn {
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+#prev-btn:hover { background: var(--surface3); color: var(--text); }
+#prev-btn.invisible { visibility: hidden; }
+
+#next-btn {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+#next-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 24px var(--accent-glow); }
+#next-btn.launch {
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  gap: 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  font-size: 15px;
+  box-shadow: 0 4px 24px var(--accent-glow);
+}
+#next-btn.launch:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+#next-btn.launch svg { width: 20px; height: 20px; fill: #fff; }
+
+
+/* ===== CALL SCREEN ===== */
+#call-screen {
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
 }
 
-/* Header */
-header {
+#call-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   gap: 12px;
-}
-#toggle-sidebar {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
   flex-shrink: 0;
-  transition: all 0.15s;
 }
-#toggle-sidebar:hover { border-color: var(--accent); color: var(--accent); }
-header h1 {
-  font-size: 17px;
+#call-header h1 {
+  font-size: 16px;
   font-weight: 600;
   color: #fff;
   flex: 1;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -358,24 +414,23 @@ header h1 {
   flex-shrink: 0;
 }
 #status-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #3b3f54;
-  transition: background 0.3s;
+  transition: background 0.3s, box-shadow 0.3s;
 }
-#status-dot.ready     { background: var(--green); }
-#status-dot.listening { background: #3b82f6; animation: pulse 1s infinite; }
-#status-dot.speaking  { background: var(--purple); animation: pulse 1.2s infinite; }
+#status-dot.ready     { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+#status-dot.listening { background: #60a5fa; animation: pulse 1s infinite; box-shadow: 0 0 8px rgba(96,165,250,0.3); }
+#status-dot.speaking  { background: var(--purple); animation: pulse 1.2s infinite; box-shadow: 0 0 8px rgba(167,139,250,0.3); }
 #status-dot.processing{ background: var(--yellow); }
-#status-dot.error     { background: var(--red); }
+#status-dot.error     { background: var(--red); box-shadow: 0 0 8px var(--red-glow); }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.4; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
 }
 
-/* Chat */
 #chat {
   flex: 1;
   overflow-y: auto;
@@ -387,10 +442,15 @@ header h1 {
 .msg {
   max-width: 78%;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: 16px;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   word-wrap: break-word;
+  animation: msgIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .msg.user {
   align-self: flex-end;
@@ -404,14 +464,15 @@ header h1 {
   color: var(--text);
   border-bottom-left-radius: 4px;
 }
-.msg.agent.interrupted { opacity: 0.5; }
+.msg.agent.interrupted { opacity: 0.4; }
 
 #live-transcript {
-  padding: 0 20px 10px;
+  padding: 0 20px 8px;
   font-size: 12px;
   color: #6b7280;
   min-height: 18px;
   font-style: italic;
+  flex-shrink: 0;
 }
 
 #tool-bar {
@@ -422,161 +483,168 @@ header h1 {
   font-size: 12px;
   color: var(--text-dim);
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 #tool-bar.visible { display: flex; }
 #tool-bar .spinner {
   width: 14px; height: 14px;
-  border: 2px solid #3b3f54;
+  border: 2px solid var(--surface3);
   border-top-color: var(--purple);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Start overlay */
-#start-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 17, 23, 0.92);
+#call-footer {
+  padding: 14px 20px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 10;
-}
-#start-overlay.hidden { display: none; }
-#start-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 28px 44px;
-  border: 2px solid var(--accent);
-  border-radius: 18px;
+  gap: 12px;
+  border-top: 1px solid var(--border);
   background: var(--surface);
-  color: #fff;
+  flex-shrink: 0;
+}
+#end-btn {
+  padding: 10px 28px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1.5px solid var(--red);
+  border-radius: 12px;
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
-#start-btn:hover {
+#end-btn:hover { background: var(--red); color: #fff; box-shadow: 0 4px 16px var(--red-glow); }
+#settings-btn {
+  padding: 10px 20px;
   background: var(--surface2);
-  border-color: var(--accent-hover);
-  transform: scale(1.02);
-}
-#start-btn svg { width: 44px; height: 44px; fill: var(--accent); }
-#start-btn span { font-size: 15px; font-weight: 500; }
-#start-btn .hint {
-  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   color: var(--text-dim);
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
 }
-
-/* Mobile */
-@media (max-width: 768px) {
-  #sidebar { position: absolute; z-index: 20; height: 100%; width: 100%; min-width: 100%; }
-  #sidebar.collapsed { margin-left: -100%; }
-}
+#settings-btn:hover { border-color: var(--accent); color: var(--text); }
 </style>
 </head>
 <body>
 
-<!-- ===== SIDEBAR ===== -->
-<aside id="sidebar">
-  <div id="sidebar-header">
-    <h2>Configuration</h2>
-    <span id="save-indicator">Saved</span>
-  </div>
-  <div id="sidebar-scroll">
+<!-- ===== ONBOARDING ===== -->
+<div id="onboarding" class="screen">
+  <div id="progress-bar"><div id="progress-fill" style="width: 25%"></div></div>
+  <div id="step-container">
 
-    <!-- Voice picker -->
-    <div class="section">
-      <div class="section-title">Voice</div>
+    <!-- Step 1: Voice -->
+    <div class="step active" data-step="1">
+      <div class="step-badge"><span class="num">1</span> Voice</div>
+      <h2>Pick a voice for your receptionist</h2>
+      <p class="subtitle">This is who your callers will hear. You can always change it later.</p>
       <div class="voice-grid" id="voice-grid"></div>
     </div>
 
-    <!-- Business info -->
-    <div class="section">
-      <div class="section-title">Business</div>
-      <div class="field">
-        <label>Business Name</label>
-        <input type="text" id="cfg-name" data-key="business_name">
+    <!-- Step 2: Business -->
+    <div class="step" data-step="2">
+      <div class="step-badge"><span class="num">2</span> Business</div>
+      <h2>Tell us about your business</h2>
+      <p class="subtitle">The receptionist will use this info to answer caller questions.</p>
+      <div class="fields-row">
+        <div class="field">
+          <label>Business Name</label>
+          <input type="text" id="cfg-name" data-key="business_name" placeholder="Bright Smile Dental">
+        </div>
+        <div class="field">
+          <label>Receptionist Name</label>
+          <input type="text" id="cfg-recep" data-key="receptionist_name" placeholder="Dawn">
+        </div>
+      </div>
+      <div class="fields-row">
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="cfg-phone" data-key="phone" placeholder="555-123-4567">
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <input type="text" id="cfg-address" data-key="address" placeholder="742 Evergreen Terrace">
+        </div>
       </div>
       <div class="field">
-        <label>Receptionist Name</label>
-        <input type="text" id="cfg-recep" data-key="receptionist_name">
-      </div>
-      <div class="field">
-        <label>Phone</label>
-        <input type="text" id="cfg-phone" data-key="phone">
-      </div>
-      <div class="field">
-        <label>Address</label>
-        <input type="text" id="cfg-address" data-key="address">
+        <label>Hours</label>
+        <div class="hours-grid" id="hours-grid"></div>
       </div>
     </div>
 
-    <!-- Hours -->
-    <div class="section">
-      <div class="section-title">Hours</div>
-      <div class="hours-grid" id="hours-grid"></div>
-    </div>
-
-    <!-- Services -->
-    <div class="section">
-      <div class="section-title">Services</div>
+    <!-- Step 3: Services -->
+    <div class="step" data-step="3">
+      <div class="step-badge"><span class="num">3</span> Services</div>
+      <h2>What do you offer?</h2>
+      <p class="subtitle">Add services with duration and price. The agent uses these when booking appointments.</p>
       <div class="list-items" id="services-list"></div>
       <button class="add-btn" onclick="addService()">+ Add Service</button>
+
+      <div style="margin-top: 32px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">Providers</label>
+        <div class="list-items" id="providers-list"></div>
+        <button class="add-btn" onclick="addProvider()">+ Add Provider</button>
+      </div>
+
+      <div style="margin-top: 32px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">Insurance Accepted</label>
+        <div class="list-items" id="insurance-list"></div>
+        <button class="add-btn" onclick="addInsurance()">+ Add Plan</button>
+      </div>
     </div>
 
-    <!-- Providers -->
-    <div class="section">
-      <div class="section-title">Providers</div>
-      <div class="list-items" id="providers-list"></div>
-      <button class="add-btn" onclick="addProvider()">+ Add Provider</button>
+    <!-- Step 4: Review & Launch -->
+    <div class="step" data-step="4">
+      <div class="step-badge"><span class="num">4</span> Ready</div>
+      <h2>You're all set</h2>
+      <p class="subtitle">Your receptionist is configured and ready to take calls. Hit launch to start a conversation.</p>
+
+      <div id="review-card" style="background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:20px; margin-bottom:24px;">
+        <div id="review-summary" style="font-size:14px; line-height:1.7; color:var(--text-dim);"></div>
+      </div>
+
+      <div class="section">
+        <div style="font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">Appointments</div>
+        <div class="calendar" id="calendar"></div>
+        <div id="booking-popover"></div>
+      </div>
     </div>
 
-    <!-- Insurance -->
-    <div class="section">
-      <div class="section-title">Insurance Accepted</div>
-      <div class="list-items" id="insurance-list"></div>
-      <button class="add-btn" onclick="addInsurance()">+ Add Plan</button>
-    </div>
-
-    <!-- Calendar -->
-    <div class="section">
-      <div class="section-title">Appointments</div>
-      <div class="calendar" id="calendar"></div>
-      <div id="booking-popover"></div>
-    </div>
   </div>
-</aside>
 
-<!-- ===== MAIN ===== -->
-<div id="main">
-  <header>
-    <button id="toggle-sidebar" title="Toggle sidebar">&#9776;</button>
+  <div id="nav-bar">
+    <button class="nav-btn invisible" id="prev-btn">Back</button>
+    <button class="nav-btn" id="next-btn">Next</button>
+  </div>
+</div>
+
+<!-- ===== CALL SCREEN ===== -->
+<div id="call-screen" class="screen hidden">
+  <div id="call-header">
     <h1 id="header-title">Receptionist</h1>
     <div id="status">
       <div id="status-dot"></div>
-      <span id="status-text">Not connected</span>
+      <span id="status-text">Connecting...</span>
     </div>
-  </header>
+  </div>
 
   <div id="chat"></div>
   <div id="live-transcript"></div>
   <div id="tool-bar"><div class="spinner"></div><span id="tool-label"></span></div>
 
-  <div id="start-overlay">
-    <button id="start-btn">
-      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-      <span>Start Conversation</span>
-      <span class="hint">Config changes apply on next conversation</span>
-    </button>
+  <div id="call-footer">
+    <button id="settings-btn">Settings</button>
+    <button id="end-btn">End Call</button>
   </div>
 </div>
 
 <script>
 // =====================================================================
-// Config & state
+// Voices
 // =====================================================================
 const VOICES = [
   { id: "dawn",    name: "Dawn",    desc: "Professional, smooth" },
@@ -599,31 +667,24 @@ const VOICES = [
   { id: "will",    name: "Will",    desc: "British, narrative" },
 ];
 
+// =====================================================================
+// State
+// =====================================================================
 let config = {};
 let bookings = [];
 let calYear, calMonth;
-
-// =====================================================================
-// DOM refs
-// =====================================================================
-const $ = (id) => document.getElementById(id);
-const chat       = $("chat");
-const statusDot  = $("status-dot");
-const statusText = $("status-text");
-const toolBar    = $("tool-bar");
-const toolLabel  = $("tool-label");
-const overlay    = $("start-overlay");
-const transcript = $("live-transcript");
-
+let currentStep = 1;
+const TOTAL_STEPS = 4;
 let audioCtx, ws, stream, sessionReady = false, nextPlayTime = 0, toolTimeout;
 
+const $ = (id) => document.getElementById(id);
+
 // =====================================================================
-// Config loading & saving
+// Config API
 // =====================================================================
 async function loadConfig() {
-  const res = await fetch("/api/config");
-  config = await res.json();
-  renderConfig();
+  config = await (await fetch("/api/config")).json();
+  renderAllSteps();
 }
 
 let saveTimer;
@@ -635,31 +696,74 @@ function scheduleSave() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
-    const ind = $("save-indicator");
-    ind.classList.add("visible");
-    setTimeout(() => ind.classList.remove("visible"), 1500);
   }, 400);
 }
 
 async function loadBookings() {
-  const res = await fetch("/api/bookings");
-  bookings = await res.json();
+  bookings = await (await fetch("/api/bookings")).json();
   renderCalendar();
 }
 
 // =====================================================================
-// Render config UI
+// Onboarding navigation
 // =====================================================================
-function renderConfig() {
-  $("header-title").textContent = config.business_name || "Receptionist";
+function goToStep(n) {
+  currentStep = Math.max(1, Math.min(TOTAL_STEPS, n));
 
+  document.querySelectorAll(".step").forEach((s) => s.classList.remove("active"));
+  const target = document.querySelector(`.step[data-step="${currentStep}"]`);
+  if (target) target.classList.add("active");
+
+  $("progress-fill").style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
+
+  const prev = $("prev-btn");
+  if (currentStep === 1) prev.classList.add("invisible");
+  else prev.classList.remove("invisible");
+
+  const next = $("next-btn");
+  if (currentStep === TOTAL_STEPS) {
+    next.className = "nav-btn launch";
+    next.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg> Launch`;
+    renderReview();
+  } else {
+    next.className = "nav-btn";
+    next.textContent = "Next";
+    next.id = "next-btn";
+  }
+
+  $("step-container").scrollTop = 0;
+}
+
+$("next-btn").addEventListener("click", () => {
+  if (currentStep === TOTAL_STEPS) {
+    showCallScreen();
+  } else {
+    goToStep(currentStep + 1);
+  }
+});
+$("prev-btn").addEventListener("click", () => goToStep(currentStep - 1));
+
+function renderReview() {
+  const voice = VOICES.find((v) => v.id === config.voice) || { name: config.voice };
+  $("review-summary").innerHTML = `
+    <div style="margin-bottom:8px;"><strong style="color:var(--text);">${config.business_name || "Your Business"}</strong></div>
+    <div>Voice: <strong style="color:var(--accent2);">${voice.name}</strong> &middot; Receptionist: <strong style="color:var(--text);">${config.receptionist_name || "Dawn"}</strong></div>
+    <div>Phone: ${config.phone || "—"} &middot; Address: ${config.address || "—"}</div>
+    <div>${(config.services || []).length} services &middot; ${(config.providers || []).length} providers &middot; ${(config.insurance || []).length} insurance plans</div>
+  `;
+}
+
+// =====================================================================
+// Render all setup steps
+// =====================================================================
+function renderAllSteps() {
   // Voice grid
   const vg = $("voice-grid");
   vg.innerHTML = "";
   VOICES.forEach((v) => {
     const card = document.createElement("div");
     card.className = "voice-card" + (config.voice === v.id ? " selected" : "");
-    card.innerHTML = `<div class="voice-name">${v.name}</div><div class="voice-desc">${v.desc}</div>`;
+    card.innerHTML = `<div class="check">&#10003;</div><div class="voice-name">${v.name}</div><div class="voice-desc">${v.desc}</div>`;
     card.onclick = () => {
       config.voice = v.id;
       scheduleSave();
@@ -672,222 +776,173 @@ function renderConfig() {
   // Text fields
   document.querySelectorAll(".field input[data-key]").forEach((inp) => {
     inp.value = config[inp.dataset.key] || "";
-    inp.oninput = () => {
-      config[inp.dataset.key] = inp.value;
-      if (inp.dataset.key === "business_name") {
-        $("header-title").textContent = inp.value || "Receptionist";
-      }
-      scheduleSave();
-    };
+    inp.oninput = () => { config[inp.dataset.key] = inp.value; scheduleSave(); };
   });
 
-  // Hours
   renderHours();
   renderServices();
   renderProviders();
   renderInsurance();
 
-  // Calendar
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
   renderCalendar();
+  goToStep(1);
 }
 
-// --- Hours ---
 function renderHours() {
   const grid = $("hours-grid");
   grid.innerHTML = "";
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const abbr = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const abbr = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   days.forEach((day, i) => {
     const row = document.createElement("div");
     row.className = "hours-row";
     row.innerHTML = `<span class="day">${abbr[i]}</span><input type="text" value="${config.hours?.[day] || "Closed"}">`;
-    const inp = row.querySelector("input");
-    inp.oninput = () => {
+    row.querySelector("input").oninput = (e) => {
       if (!config.hours) config.hours = {};
-      config.hours[day] = inp.value;
+      config.hours[day] = e.target.value;
       scheduleSave();
     };
     grid.appendChild(row);
   });
 }
 
-// --- Services ---
 function renderServices() {
   const list = $("services-list");
   list.innerHTML = "";
   (config.services || []).forEach((svc, idx) => {
     const el = document.createElement("div");
     el.className = "list-item";
-    el.innerHTML = `
-      <input type="text" value="${svc.name}" placeholder="Service name">
-      <div class="duration-price">
-        <input type="number" value="${svc.duration}" placeholder="min" title="Duration (min)">
-        <input type="number" value="${svc.price}" placeholder="$" title="Price ($)">
-      </div>
-      <button class="remove-btn" title="Remove">&times;</button>
-    `;
+    el.innerHTML = `<input type="text" value="${svc.name}" placeholder="Service name">
+      <div class="dp"><input type="number" value="${svc.duration}" placeholder="min" title="Duration (min)"><input type="number" value="${svc.price}" placeholder="$" title="Price ($)"></div>
+      <button class="rm" title="Remove">&times;</button>`;
     const inputs = el.querySelectorAll("input");
     inputs[0].oninput = () => { config.services[idx].name = inputs[0].value; scheduleSave(); };
     inputs[1].oninput = () => { config.services[idx].duration = +inputs[1].value; scheduleSave(); };
     inputs[2].oninput = () => { config.services[idx].price = +inputs[2].value; scheduleSave(); };
-    el.querySelector(".remove-btn").onclick = () => {
-      config.services.splice(idx, 1);
-      scheduleSave();
-      renderServices();
-    };
+    el.querySelector(".rm").onclick = () => { config.services.splice(idx, 1); scheduleSave(); renderServices(); };
     list.appendChild(el);
   });
 }
-function addService() {
-  if (!config.services) config.services = [];
-  config.services.push({ name: "", duration: 30, price: 0 });
-  scheduleSave();
-  renderServices();
-}
+function addService() { if (!config.services) config.services = []; config.services.push({name:"",duration:30,price:0}); scheduleSave(); renderServices(); }
 
-// --- Providers ---
 function renderProviders() {
   const list = $("providers-list");
   list.innerHTML = "";
   (config.providers || []).forEach((p, idx) => {
     const el = document.createElement("div");
     el.className = "list-item";
-    el.innerHTML = `<input type="text" value="${p}" placeholder="Provider name"><button class="remove-btn">&times;</button>`;
+    el.innerHTML = `<input type="text" value="${p}" placeholder="Provider name"><button class="rm">&times;</button>`;
     el.querySelector("input").oninput = (e) => { config.providers[idx] = e.target.value; scheduleSave(); };
-    el.querySelector(".remove-btn").onclick = () => { config.providers.splice(idx, 1); scheduleSave(); renderProviders(); };
+    el.querySelector(".rm").onclick = () => { config.providers.splice(idx, 1); scheduleSave(); renderProviders(); };
     list.appendChild(el);
   });
 }
-function addProvider() {
-  if (!config.providers) config.providers = [];
-  config.providers.push("");
-  scheduleSave();
-  renderProviders();
-}
+function addProvider() { if (!config.providers) config.providers = []; config.providers.push(""); scheduleSave(); renderProviders(); }
 
-// --- Insurance ---
 function renderInsurance() {
   const list = $("insurance-list");
   list.innerHTML = "";
   (config.insurance || []).forEach((p, idx) => {
     const el = document.createElement("div");
     el.className = "list-item";
-    el.innerHTML = `<input type="text" value="${p}" placeholder="Plan name"><button class="remove-btn">&times;</button>`;
+    el.innerHTML = `<input type="text" value="${p}" placeholder="Plan name"><button class="rm">&times;</button>`;
     el.querySelector("input").oninput = (e) => { config.insurance[idx] = e.target.value; scheduleSave(); };
-    el.querySelector(".remove-btn").onclick = () => { config.insurance.splice(idx, 1); scheduleSave(); renderInsurance(); };
+    el.querySelector(".rm").onclick = () => { config.insurance.splice(idx, 1); scheduleSave(); renderInsurance(); };
     list.appendChild(el);
   });
 }
-function addInsurance() {
-  if (!config.insurance) config.insurance = [];
-  config.insurance.push("");
-  scheduleSave();
-  renderInsurance();
-}
+function addInsurance() { if (!config.insurance) config.insurance = []; config.insurance.push(""); scheduleSave(); renderInsurance(); }
 
 // =====================================================================
 // Calendar
 // =====================================================================
 function renderCalendar() {
   const cal = $("calendar");
-  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
-  // Booking dates for this month
+  if (!cal) return;
+  const mn = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const bookedDates = new Set();
-  bookings.forEach((b) => {
-    if (b.status === "confirmed" && b.date) {
-      bookedDates.add(b.date.toLowerCase());
-    }
-  });
-
+  bookings.forEach(b => { if (b.status === "confirmed" && b.date) bookedDates.add(b.date.toLowerCase()); });
   const firstDay = new Date(calYear, calMonth, 1);
   const lastDay = new Date(calYear, calMonth + 1, 0);
-  const startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+  const startDow = (firstDay.getDay() + 6) % 7;
   const today = new Date();
-
-  let html = `
-    <div class="cal-header">
-      <button class="cal-nav" onclick="calPrev()">&lsaquo;</button>
-      <span>${monthNames[calMonth]} ${calYear}</span>
-      <button class="cal-nav" onclick="calNext()">&rsaquo;</button>
-    </div>
-    <div class="cal-grid">
-      <div class="day-label">Mo</div><div class="day-label">Tu</div><div class="day-label">We</div>
-      <div class="day-label">Th</div><div class="day-label">Fr</div><div class="day-label">Sa</div><div class="day-label">Su</div>
-  `;
-
-  // Leading days from prev month
+  let html = `<div class="cal-header"><button class="cal-nav" onclick="calPrev()">&lsaquo;</button><span>${mn[calMonth]} ${calYear}</span><button class="cal-nav" onclick="calNext()">&rsaquo;</button></div><div class="cal-grid"><div class="day-label">Mo</div><div class="day-label">Tu</div><div class="day-label">We</div><div class="day-label">Th</div><div class="day-label">Fr</div><div class="day-label">Sa</div><div class="day-label">Su</div>`;
   const prevLast = new Date(calYear, calMonth, 0).getDate();
-  for (let i = startDow - 1; i >= 0; i--) {
-    html += `<div class="cal-day other-month">${prevLast - i}</div>`;
-  }
-
-  // This month
+  for (let i = startDow - 1; i >= 0; i--) html += `<div class="cal-day other-month">${prevLast - i}</div>`;
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const isToday = d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const hasBooking = bookedDates.has(dateStr);
-    // Also check loose matches (e.g. "April 15" etc.)
-    const looseDateStr = `${monthNames[calMonth].toLowerCase()} ${d}`;
-    const hasBookingLoose = bookings.some(
-      (b) => b.status === "confirmed" && b.date && b.date.toLowerCase().includes(looseDateStr)
-    );
-    const cls = [
-      "cal-day",
-      isToday ? "today" : "",
-      (hasBooking || hasBookingLoose) ? "has-booking" : "",
-    ].filter(Boolean).join(" ");
-    html += `<div class="${cls}" onclick="showBookings('${dateStr}', '${monthNames[calMonth]} ${d}, ${calYear}')">${d}</div>`;
+    const loose = `${mn[calMonth].toLowerCase()} ${d}`;
+    const has = bookedDates.has(dateStr) || bookings.some(b => b.status==="confirmed" && b.date && b.date.toLowerCase().includes(loose));
+    html += `<div class="cal-day${isToday?" today":""}${has?" has-booking":""}" onclick="showBookings('${dateStr}','${mn[calMonth]} ${d}, ${calYear}')">${d}</div>`;
   }
-
-  // Trailing days
-  const totalCells = startDow + lastDay.getDate();
-  const remaining = (7 - (totalCells % 7)) % 7;
-  for (let i = 1; i <= remaining; i++) {
-    html += `<div class="cal-day other-month">${i}</div>`;
-  }
-
+  const rem = (7 - ((startDow + lastDay.getDate()) % 7)) % 7;
+  for (let i = 1; i <= rem; i++) html += `<div class="cal-day other-month">${i}</div>`;
   html += `</div>`;
   cal.innerHTML = html;
 }
-
 function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
 function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
-
 function showBookings(dateStr, displayDate) {
   const pop = $("booking-popover");
-  const dayBookings = bookings.filter((b) => {
+  const day = bookings.filter(b => {
     if (b.status !== "confirmed" || !b.date) return false;
-    return b.date === dateStr || b.date.toLowerCase().includes(displayDate.toLowerCase().replace(`, ${calYear}`, "").toLowerCase());
+    return b.date === dateStr || b.date.toLowerCase().includes(displayDate.toLowerCase().replace(/, \d{4}$/, "").toLowerCase());
   });
-
-  if (dayBookings.length === 0) {
-    pop.innerHTML = `<h4>${displayDate}</h4><div class="no-bookings">No appointments</div>`;
-  } else {
-    pop.innerHTML = `<h4>${displayDate}</h4>` + dayBookings.map((b) =>
-      `<div class="booking-entry"><strong>${b.patient_name}</strong> — ${b.service} at ${b.time}<br>${b.confirmation}</div>`
-    ).join("");
-  }
+  pop.innerHTML = day.length
+    ? `<h4>${displayDate}</h4>` + day.map(b => `<div class="booking-entry"><strong>${b.patient_name}</strong> — ${b.service} at ${b.time}<br>${b.confirmation}</div>`).join("")
+    : `<h4>${displayDate}</h4><div class="no-bookings">No appointments</div>`;
   pop.classList.add("visible");
 }
 
 // =====================================================================
-// Sidebar toggle
+// Screen transitions
 // =====================================================================
-$("toggle-sidebar").onclick = () => {
-  $("sidebar").classList.toggle("collapsed");
-};
+function showCallScreen() {
+  $("header-title").textContent = config.business_name || "Receptionist";
+  $("onboarding").classList.add("hidden");
+  $("nav-bar").classList.add("hidden");
+  $("call-screen").classList.remove("hidden");
+  startCall();
+}
+
+function showSetupScreen() {
+  endCall();
+  $("call-screen").classList.add("hidden");
+  $("onboarding").classList.remove("hidden");
+  $("nav-bar").classList.remove("hidden");
+  $("chat").innerHTML = "";
+  $("live-transcript").textContent = "";
+  loadBookings();
+  goToStep(TOTAL_STEPS); // Go to review/launch step
+}
+
+$("end-btn").addEventListener("click", showSetupScreen);
+$("settings-btn").addEventListener("click", () => {
+  endCall();
+  $("call-screen").classList.add("hidden");
+  $("onboarding").classList.remove("hidden");
+  $("nav-bar").classList.remove("hidden");
+  $("chat").innerHTML = "";
+  $("live-transcript").textContent = "";
+  loadBookings();
+  goToStep(1);
+});
 
 // =====================================================================
-// Audio & voice agent (unchanged core logic)
+// Voice agent
 // =====================================================================
-function setStatus(label, cls) {
-  statusText.textContent = label;
-  statusDot.className = cls || "";
-}
+const chat       = $("chat");
+const statusDot  = $("status-dot");
+const statusText = $("status-text");
+const toolBar    = $("tool-bar");
+const toolLabel  = $("tool-label");
+const transcript = $("live-transcript");
+
+function setStatus(label, cls) { statusText.textContent = label; statusDot.className = cls || ""; }
 
 function addMessage(role, text, interrupted) {
   const div = document.createElement("div");
@@ -898,13 +953,7 @@ function addMessage(role, text, interrupted) {
 }
 
 function showToolActivity(name) {
-  const labels = {
-    get_business_info: "Looking up info...",
-    check_availability: "Checking availability...",
-    book_appointment: "Booking appointment...",
-    cancel_appointment: "Cancelling appointment...",
-    transfer_call: "Connecting you...",
-  };
+  const labels = { get_business_info:"Looking up info...", check_availability:"Checking availability...", book_appointment:"Booking appointment...", cancel_appointment:"Cancelling...", transfer_call:"Connecting you..." };
   toolLabel.textContent = labels[name] || `Running ${name}...`;
   toolBar.classList.add("visible");
   clearTimeout(toolTimeout);
@@ -929,41 +978,22 @@ function clearPlayback() { nextPlayTime = 0; }
 
 function handleEvent(event) {
   switch (event.type) {
-    case "session.ready":
-      sessionReady = true;
-      setStatus("Ready", "ready");
-      break;
-    case "input.speech.started":
-      setStatus("Listening", "listening");
-      clearPlayback();
-      break;
-    case "input.speech.stopped":
-      setStatus("Processing", "processing");
-      break;
-    case "transcript.user.delta":
-      transcript.textContent = event.text || "";
-      break;
-    case "transcript.user":
-      transcript.textContent = "";
-      addMessage("user", event.text);
-      break;
-    case "transcript.agent":
-      addMessage("agent", event.text, event.interrupted);
-      break;
+    case "session.ready": sessionReady = true; setStatus("Ready", "ready"); break;
+    case "input.speech.started": setStatus("Listening", "listening"); clearPlayback(); break;
+    case "input.speech.stopped": setStatus("Processing", "processing"); break;
+    case "transcript.user.delta": transcript.textContent = event.text || ""; break;
+    case "transcript.user": transcript.textContent = ""; addMessage("user", event.text); break;
+    case "transcript.agent": addMessage("agent", event.text, event.interrupted); break;
     case "tool.call":
       showToolActivity(event.name);
-      // Refresh bookings after booking tool
-      if (event.name === "book_appointment" || event.name === "cancel_appointment") {
-        setTimeout(loadBookings, 1500);
-      }
+      if (event.name === "book_appointment" || event.name === "cancel_appointment") setTimeout(loadBookings, 1500);
       break;
     case "reply.audio": {
       setStatus("Speaking", "speaking");
       const binary = atob(event.data);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const pcm16 = new Int16Array(bytes.buffer);
-      playPCM16(pcm16);
+      playPCM16(new Int16Array(bytes.buffer));
       break;
     }
     case "reply.done":
@@ -971,16 +1001,15 @@ function handleEvent(event) {
       if (event.status === "interrupted") clearPlayback();
       setStatus("Ready", "ready");
       break;
-    case "error":
-    case "session.error":
+    case "error": case "session.error":
       console.error(event);
       setStatus("Error: " + (event.message || event.code), "error");
       break;
   }
 }
 
-$("start-btn").addEventListener("click", async () => {
-  overlay.classList.add("hidden");
+async function startCall() {
+  sessionReady = false; nextPlayTime = 0;
   setStatus("Connecting...", "");
 
   audioCtx = new AudioContext({ sampleRate: 24000 });
@@ -992,31 +1021,21 @@ $("start-btn").addEventListener("click", async () => {
   class CaptureProcessor extends AudioWorkletProcessor {
     constructor() { super(); this.buffer = new Float32Array(0); }
     process(inputs) {
-      const input = inputs[0][0];
-      if (!input) return true;
+      const input = inputs[0][0]; if (!input) return true;
       const merged = new Float32Array(this.buffer.length + input.length);
-      merged.set(this.buffer);
-      merged.set(input, this.buffer.length);
-      const CHUNK = 1200;
-      let offset = 0;
+      merged.set(this.buffer); merged.set(input, this.buffer.length);
+      const CHUNK = 1200; let offset = 0;
       while (offset + CHUNK <= merged.length) {
         const slice = merged.subarray(offset, offset + CHUNK);
         const pcm16 = new Int16Array(CHUNK);
-        for (let i = 0; i < CHUNK; i++) {
-          const s = Math.max(-1, Math.min(1, slice[i]));
-          pcm16[i] = s < 0 ? s * 32768 : s * 32767;
-        }
-        this.port.postMessage(pcm16.buffer, [pcm16.buffer]);
-        offset += CHUNK;
+        for (let i = 0; i < CHUNK; i++) { const s = Math.max(-1, Math.min(1, slice[i])); pcm16[i] = s < 0 ? s * 32768 : s * 32767; }
+        this.port.postMessage(pcm16.buffer, [pcm16.buffer]); offset += CHUNK;
       }
-      this.buffer = merged.subarray(offset);
-      return true;
+      this.buffer = merged.subarray(offset); return true;
     }
   }
-  registerProcessor("capture-processor", CaptureProcessor);
-  `;
-  const blob = new Blob([captureCode], { type: "application/javascript" });
-  await audioCtx.audioWorklet.addModule(URL.createObjectURL(blob));
+  registerProcessor("capture-processor", CaptureProcessor);`;
+  await audioCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([captureCode], { type: "application/javascript" })));
   const source = audioCtx.createMediaStreamSource(stream);
   const captureNode = new AudioWorkletNode(audioCtx, "capture-processor");
   source.connect(captureNode);
@@ -1025,17 +1044,20 @@ $("start-btn").addEventListener("click", async () => {
   captureNode.port.onmessage = (e) => {
     if (!sessionReady || ws.readyState !== WebSocket.OPEN) return;
     const bytes = new Uint8Array(e.data);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    let binary = ""; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     ws.send(JSON.stringify({ type: "input.audio", audio: btoa(binary) }));
   };
   ws.addEventListener("message", (msg) => handleEvent(JSON.parse(msg.data)));
-  ws.addEventListener("close", () => {
-    setStatus("Disconnected", "");
-    if (stream) stream.getTracks().forEach((t) => t.stop());
-    if (audioCtx) audioCtx.close();
-  });
-});
+  ws.addEventListener("close", () => setStatus("Disconnected", ""));
+}
+
+function endCall() {
+  sessionReady = false;
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  ws = null; stream = null; clearPlayback();
+}
 
 // =====================================================================
 // Init
