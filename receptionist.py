@@ -1,10 +1,9 @@
 import asyncio
-import base64
 import json
 import os
 import random
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from aiohttp import web, ClientSession, WSMsgType
@@ -12,22 +11,25 @@ from aiohttp import web, ClientSession, WSMsgType
 API_KEY = os.environ.get("ASSEMBLYAI_API_KEY", "<your-api-key>")
 AAI_URL = "wss://agents.assemblyai.com/v1/realtime"
 PORT = int(os.environ.get("PORT", 3000))
+CONFIG_PATH = Path(__file__).parent / "config.json"
 
 # ---------------------------------------------------------------------------
-# 1. Domain data — replace with real database / CRM calls
+# 1. Config persistence
 # ---------------------------------------------------------------------------
 
-BUSINESS = {
-    "name": "Bright Smile Dental",
+DEFAULT_CONFIG = {
+    "business_name": "Bright Smile Dental",
     "phone": "555-123-4567",
     "address": "742 Evergreen Terrace, Suite 200, Springfield",
+    "receptionist_name": "Dawn",
+    "voice": "dawn",
     "hours": {
-        "Monday": "8:00 AM – 5:00 PM",
-        "Tuesday": "8:00 AM – 5:00 PM",
-        "Wednesday": "8:00 AM – 5:00 PM",
-        "Thursday": "8:00 AM – 6:00 PM",
-        "Friday": "8:00 AM – 3:00 PM",
-        "Saturday": "9:00 AM – 1:00 PM",
+        "Monday": "8:00 AM - 5:00 PM",
+        "Tuesday": "8:00 AM - 5:00 PM",
+        "Wednesday": "8:00 AM - 5:00 PM",
+        "Thursday": "8:00 AM - 6:00 PM",
+        "Friday": "8:00 AM - 3:00 PM",
+        "Saturday": "9:00 AM - 1:00 PM",
         "Sunday": "Closed",
     },
     "services": [
@@ -39,56 +41,78 @@ BUSINESS = {
         {"name": "Consultation", "duration": 30, "price": 0},
     ],
     "providers": ["Dr. Patel", "Dr. Kim", "Dr. Rodriguez"],
-    "insurance_accepted": [
-        "Delta Dental", "Cigna", "Aetna", "MetLife", "Guardian",
-    ],
+    "insurance": ["Delta Dental", "Cigna", "Aetna", "MetLife", "Guardian"],
 }
 
-# In-memory appointment store — replace with a real database
+# Live config — loaded from disk or defaults
+CONFIG: dict = {}
+
+
+def load_config():
+    global CONFIG
+    if CONFIG_PATH.exists():
+        try:
+            saved = json.loads(CONFIG_PATH.read_text())
+            CONFIG = {**DEFAULT_CONFIG, **saved}
+            return
+        except Exception:
+            pass
+    CONFIG = {**DEFAULT_CONFIG}
+
+
+def save_config():
+    CONFIG_PATH.write_text(json.dumps(CONFIG, indent=2))
+
+
+load_config()
+
+# ---------------------------------------------------------------------------
+# 2. In-memory bookings — replace with a real database
+# ---------------------------------------------------------------------------
+
 BOOKINGS: dict[str, dict] = {}
 
 
-def _get_business_info(topic: str) -> dict:
-    """Return business info filtered by topic."""
-    topic = topic.lower()
+# ---------------------------------------------------------------------------
+# 3. Domain logic (tool implementations)
+# ---------------------------------------------------------------------------
+
+
+def _get_business_info(args: dict) -> dict:
+    topic = args.get("topic", "").lower()
     if "hour" in topic or "open" in topic or "close" in topic:
-        return {"hours": BUSINESS["hours"]}
+        return {"hours": CONFIG["hours"]}
     if "address" in topic or "location" in topic or "direction" in topic:
-        return {"address": BUSINESS["address"]}
+        return {"address": CONFIG["address"]}
     if "service" in topic or "offer" in topic or "procedure" in topic:
-        return {"services": BUSINESS["services"]}
+        return {"services": CONFIG["services"]}
     if "insurance" in topic or "accept" in topic or "plan" in topic:
-        return {"insurance_accepted": BUSINESS["insurance_accepted"]}
+        return {"insurance_accepted": CONFIG["insurance"]}
     if "provider" in topic or "doctor" in topic or "dentist" in topic:
-        return {"providers": BUSINESS["providers"]}
+        return {"providers": CONFIG["providers"]}
     if "phone" in topic or "contact" in topic or "number" in topic:
-        return {"phone": BUSINESS["phone"], "address": BUSINESS["address"]}
-    # General info
+        return {"phone": CONFIG["phone"], "address": CONFIG["address"]}
     return {
-        "name": BUSINESS["name"],
-        "phone": BUSINESS["phone"],
-        "address": BUSINESS["address"],
-        "hours_today": BUSINESS["hours"].get(
+        "name": CONFIG["business_name"],
+        "phone": CONFIG["phone"],
+        "address": CONFIG["address"],
+        "hours_today": CONFIG["hours"].get(
             datetime.now().strftime("%A"), "Closed"
         ),
     }
 
 
 def _check_availability(args: dict) -> dict:
-    """Simulate checking available slots for a date + optional service."""
     date_str = args.get("date", "tomorrow")
     service = args.get("service", "")
-
-    # Generate fake available slots
     slots = []
     for hour in [9, 10, 11, 13, 14, 15, 16]:
-        if random.random() > 0.35:  # ~65 % chance each slot is open
+        if random.random() > 0.35:
             slots.append(f"{hour}:00")
     if not slots:
-        slots = ["10:00", "14:00"]  # always at least two
-
+        slots = ["10:00", "14:00"]
     providers_available = random.sample(
-        BUSINESS["providers"], k=random.randint(1, len(BUSINESS["providers"]))
+        CONFIG["providers"], k=random.randint(1, len(CONFIG["providers"]))
     )
     return {
         "date": date_str,
@@ -99,7 +123,6 @@ def _check_availability(args: dict) -> dict:
 
 
 def _book_appointment(args: dict) -> dict:
-    """Create a booking. Replace with your CRM / scheduling API."""
     conf = f"BK-{uuid.uuid4().hex[:6].upper()}"
     booking = {
         "confirmation": conf,
@@ -110,13 +133,13 @@ def _book_appointment(args: dict) -> dict:
         "service": args.get("service", ""),
         "provider": args.get("provider", ""),
         "phone": args.get("phone", ""),
+        "booked_at": datetime.now().isoformat(),
     }
     BOOKINGS[conf] = booking
     return booking
 
 
 def _cancel_appointment(args: dict) -> dict:
-    """Cancel a booking by confirmation number."""
     conf = args.get("confirmation_number", "").upper()
     if conf in BOOKINGS:
         BOOKINGS[conf]["status"] = "cancelled"
@@ -125,7 +148,6 @@ def _cancel_appointment(args: dict) -> dict:
 
 
 def _transfer_call(args: dict) -> dict:
-    """Simulate transferring the call to a live person."""
     reason = args.get("reason", "general inquiry")
     department = args.get("department", "front desk")
     return {
@@ -137,7 +159,7 @@ def _transfer_call(args: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 2. Tool definitions (JSON Schema for the LLM)
+# 4. Tool definitions (JSON Schema for the LLM)
 # ---------------------------------------------------------------------------
 
 TOOLS = [
@@ -219,9 +241,7 @@ TOOLS = [
     {
         "type": "function",
         "name": "cancel_appointment",
-        "description": (
-            "Cancel an existing appointment by confirmation number."
-        ),
+        "description": "Cancel an existing appointment by confirmation number.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -258,8 +278,9 @@ TOOLS = [
     },
 ]
 
+
 # ---------------------------------------------------------------------------
-# 3. Tool execution
+# 5. Tool execution
 # ---------------------------------------------------------------------------
 
 
@@ -284,11 +305,16 @@ async def execute_tool(event: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 4. Session configuration
+# 6. Session configuration (reads live config)
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = f"""\
-You are the receptionist at {BUSINESS['name']}. Your name is Claire. You answer \
+
+def session_config() -> dict:
+    name = CONFIG["receptionist_name"]
+    biz = CONFIG["business_name"]
+
+    system_prompt = f"""\
+You are the receptionist at {biz}. Your name is {name}. You answer \
 the phone, help callers with questions, check appointment availability, book \
 appointments, and transfer calls when needed.
 
@@ -330,16 +356,14 @@ or "I found that."
 - Collect info naturally through conversation. Don't list fields.
 """
 
-GREETING = f"Hi, {BUSINESS['name']}, this is Claire. How can I help you?"
+    greeting = f"Hi, {biz}, this is {name}. How can I help you?"
 
-
-def session_config() -> dict:
     return {
         "type": "session.update",
         "session": {
-            "voice": "claire",
-            "system_prompt": SYSTEM_PROMPT,
-            "greeting": GREETING,
+            "voice": CONFIG["voice"],
+            "system_prompt": system_prompt,
+            "greeting": greeting,
             "tools": TOOLS,
             "turn_detection": {
                 "max_turn_silence_ms": 1000,
@@ -350,7 +374,7 @@ def session_config() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 5. Server — HTTP + WebSocket proxy
+# 7. Server — HTTP + WebSocket proxy + REST API
 # ---------------------------------------------------------------------------
 
 
@@ -408,11 +432,30 @@ async def index_handler(request):
     return web.FileResponse(Path(__file__).with_suffix(".html"))
 
 
+async def get_config_handler(request):
+    return web.json_response(CONFIG)
+
+
+async def post_config_handler(request):
+    global CONFIG
+    body = await request.json()
+    CONFIG.update(body)
+    save_config()
+    return web.json_response({"status": "saved"})
+
+
+async def get_bookings_handler(request):
+    return web.json_response(list(BOOKINGS.values()))
+
+
 app = web.Application()
 app.router.add_get("/", index_handler)
 app.router.add_get("/ws", websocket_handler)
+app.router.add_get("/api/config", get_config_handler)
+app.router.add_post("/api/config", post_config_handler)
+app.router.add_get("/api/bookings", get_bookings_handler)
 
 if __name__ == "__main__":
-    print(f"Bright Smile Dental Receptionist")
+    print(f"Receptionist Voice Agent Demo")
     print(f"Open http://localhost:{PORT}")
     web.run_app(app, port=PORT)

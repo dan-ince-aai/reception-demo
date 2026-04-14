@@ -1,6 +1,8 @@
 # Receptionist Voice Agent Demo
 
-A real-time voice agent that acts as a dental office receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/voice-agents/speech-to-speech). The agent answers phone calls, checks appointment availability, books appointments, and transfers callers to a live person when needed.
+A real-time voice agent that acts as a business receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/voice-agents/speech-to-speech). The agent answers phone calls, checks appointment availability, books appointments, and transfers callers to a live person when needed.
+
+Includes a full interactive configuration UI — pick a voice, edit business details, manage services, and view booked appointments on a calendar. All changes save locally and persist across restarts.
 
 ## What it does
 
@@ -18,7 +20,23 @@ export ASSEMBLYAI_API_KEY="your-key-here"
 python3 receptionist.py
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and click **Start Conversation**.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Interactive configuration
+
+The left sidebar lets you customize everything without touching code:
+
+| Section | What you can change |
+|---------|-------------------|
+| **Voice** | Pick from 18 voices — click a card to switch |
+| **Business** | Name, receptionist name, phone, address |
+| **Hours** | Set hours for each day of the week |
+| **Services** | Add, edit, or remove services with duration and price |
+| **Providers** | Manage the provider list |
+| **Insurance** | Manage accepted insurance plans |
+| **Appointments** | Monthly calendar showing booked appointments |
+
+Changes save to `config.json` automatically and take effect on the next conversation.
 
 ## How it works
 
@@ -26,31 +44,18 @@ Two files, no build step:
 
 | File | Purpose |
 |------|---------|
-| `receptionist.py` | Python backend — aiohttp server, WebSocket proxy to AssemblyAI, server-side tool execution |
-| `receptionist.html` | Browser frontend — AudioWorklet mic capture, PCM16 playback, dark-theme chat UI |
-
-The browser streams mic audio to the Python server, which proxies it to AssemblyAI. When the agent wants to call a tool (check availability, book an appointment, etc.), the server intercepts the request, executes the tool, and returns the result — the browser never sees the API key.
+| `receptionist.py` | Python backend — aiohttp server, WebSocket proxy, tool execution, config REST API |
+| `receptionist.html` | Browser frontend — config sidebar, voice picker, calendar, AudioWorklet capture, chat UI |
 
 ```
-Browser (mic) → WebSocket → Python proxy → AssemblyAI Voice Agent API
-                                         ← agent audio + tool calls
-                           Python proxy  → tool execution (server-side)
-                                         → tool results back to API
+Browser (config) → POST /api/config → saves to config.json
+Browser (mic)    → WebSocket → Python proxy → AssemblyAI Voice Agent API
+                                            ← agent audio + tool calls
+                              Python proxy  → tool execution (server-side)
+                                            → tool results back to API
 ```
 
-## Customization
-
-### Business details
-
-Edit the `BUSINESS` dict at the top of `receptionist.py` to change the name, hours, address, services, providers, and accepted insurance.
-
-### Real backend
-
-The booking functions (`_create_booking`, `_check_availability`, etc.) use in-memory dicts. Replace them with your CRM or scheduling API — each function is commented with where to plug in.
-
-### Voice
-
-The agent uses the `claire` voice (lively, conversational). See the [AssemblyAI voice list](https://www.assemblyai.com/docs/voice-agents/speech-to-speech) for other options — just change the `voice` field in `session_config()`.
+The browser never sees the API key. Tool execution and config persistence are entirely server-side.
 
 ## Requirements
 

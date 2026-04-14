@@ -3,17 +3,314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bright Smile Dental — Receptionist</title>
+<title>Receptionist Voice Agent</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #151722;
+  --surface2: #1e2130;
+  --border: #282b3d;
+  --text: #e1e4ea;
+  --text-dim: #8b8fa3;
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --green: #22c55e;
+  --purple: #a855f7;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --radius: 10px;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f1117;
-  color: #e1e4ea;
+  background: var(--bg);
+  color: var(--text);
   height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ===== SIDEBAR ===== */
+#sidebar {
+  width: 380px;
+  min-width: 380px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: margin-left 0.3s ease, opacity 0.3s ease;
+}
+#sidebar.collapsed {
+  margin-left: -380px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#sidebar-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+#sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.section { margin-bottom: 24px; }
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+/* Save indicator */
+#save-indicator {
+  font-size: 11px;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#save-indicator.visible { opacity: 1; }
+
+/* --- Voice picker --- */
+.voice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.voice-card {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg);
+}
+.voice-card:hover { border-color: var(--accent); }
+.voice-card.selected {
+  border-color: var(--accent);
+  background: rgba(37, 99, 235, 0.12);
+}
+.voice-card .voice-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.voice-card .voice-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* --- Form inputs --- */
+.field { margin-bottom: 10px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.field input, .field select {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--accent); }
+
+/* --- Hours editor --- */
+.hours-grid { display: flex; flex-direction: column; gap: 4px; }
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.hours-row .day {
+  width: 38px;
+  font-weight: 500;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.hours-row input {
+  flex: 1;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.hours-row input:focus { border-color: var(--accent); }
+
+/* --- Editable list (services, providers, insurance) --- */
+.list-items { display: flex; flex-direction: column; gap: 4px; }
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.list-item input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+.list-item .duration-price {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.list-item .duration-price input {
+  width: 50px;
+  text-align: right;
+  color: var(--text-dim);
+}
+.list-item .remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.list-item .remove-btn:hover { color: var(--red); }
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* --- Calendar --- */
+.calendar { user-select: none; }
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-header span {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cal-nav {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.cal-nav:hover { background: var(--surface2); color: var(--text); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+  font-size: 11px;
+}
+.cal-grid .day-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 4px 0;
+}
+.cal-day {
+  padding: 6px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  color: var(--text-dim);
+  transition: background 0.15s;
+}
+.cal-day:hover { background: var(--surface2); }
+.cal-day.today { color: var(--accent); font-weight: 700; }
+.cal-day.has-booking::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  margin: 2px auto 0;
+}
+.cal-day.other-month { opacity: 0.3; }
+
+/* Booking popover */
+#booking-popover {
+  display: none;
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+#booking-popover.visible { display: block; }
+#booking-popover h4 {
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.booking-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.booking-entry:last-child { border-bottom: none; }
+.booking-entry strong { color: var(--text); }
+.no-bookings { color: var(--text-dim); font-style: italic; }
+
+
+/* ===== MAIN (right side) ===== */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* Header */
@@ -21,21 +318,44 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid #1e2130;
-  background: #151722;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  gap: 12px;
 }
+#toggle-sidebar {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+#toggle-sidebar:hover { border-color: var(--accent); color: var(--accent); }
 header h1 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #status {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #8b8fa3;
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
 }
 #status-dot {
   width: 8px;
@@ -44,66 +364,70 @@ header h1 {
   background: #3b3f54;
   transition: background 0.3s;
 }
-#status-dot.ready     { background: #22c55e; }
+#status-dot.ready     { background: var(--green); }
 #status-dot.listening { background: #3b82f6; animation: pulse 1s infinite; }
-#status-dot.speaking  { background: #a855f7; animation: pulse 1.2s infinite; }
-#status-dot.processing{ background: #eab308; }
-#status-dot.error     { background: #ef4444; }
+#status-dot.speaking  { background: var(--purple); animation: pulse 1.2s infinite; }
+#status-dot.processing{ background: var(--yellow); }
+#status-dot.error     { background: var(--red); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.4; }
 }
 
-/* Chat area */
+/* Chat */
 #chat {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
-
 .msg {
-  max-width: 75%;
+  max-width: 78%;
   padding: 10px 14px;
   border-radius: 14px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
   word-wrap: break-word;
 }
 .msg.user {
   align-self: flex-end;
-  background: #2563eb;
+  background: var(--accent);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 .msg.agent {
   align-self: flex-start;
-  background: #1e2130;
-  color: #e1e4ea;
+  background: var(--surface2);
+  color: var(--text);
   border-bottom-left-radius: 4px;
 }
-.msg.agent.interrupted {
-  opacity: 0.5;
+.msg.agent.interrupted { opacity: 0.5; }
+
+#live-transcript {
+  padding: 0 20px 10px;
+  font-size: 12px;
+  color: #6b7280;
+  min-height: 18px;
+  font-style: italic;
 }
 
-/* Tool indicator */
 #tool-bar {
   display: none;
   align-items: center;
   gap: 8px;
-  padding: 8px 24px;
+  padding: 8px 20px;
   font-size: 12px;
-  color: #8b8fa3;
-  border-top: 1px solid #1e2130;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
 }
 #tool-bar.visible { display: flex; }
 #tool-bar .spinner {
   width: 14px; height: 14px;
   border: 2px solid #3b3f54;
-  border-top-color: #a855f7;
+  border-top-color: var(--purple);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -120,78 +444,446 @@ header h1 {
   z-index: 10;
 }
 #start-overlay.hidden { display: none; }
-
 #start-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px 48px;
-  border: 2px solid #2563eb;
-  border-radius: 20px;
-  background: #151722;
+  gap: 14px;
+  padding: 28px 44px;
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  background: var(--surface);
   color: #fff;
   cursor: pointer;
   transition: all 0.2s;
 }
 #start-btn:hover {
-  background: #1e2130;
-  border-color: #3b82f6;
+  background: var(--surface2);
+  border-color: var(--accent-hover);
   transform: scale(1.02);
 }
-#start-btn svg {
-  width: 48px; height: 48px;
-  fill: #2563eb;
-}
-#start-btn span {
-  font-size: 16px;
-  font-weight: 500;
+#start-btn svg { width: 44px; height: 44px; fill: var(--accent); }
+#start-btn span { font-size: 15px; font-weight: 500; }
+#start-btn .hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 400;
 }
 
-/* Transcript overlay */
-#live-transcript {
-  padding: 0 24px 12px;
-  font-size: 13px;
-  color: #6b7280;
-  min-height: 20px;
-  font-style: italic;
+/* Mobile */
+@media (max-width: 768px) {
+  #sidebar { position: absolute; z-index: 20; height: 100%; width: 100%; min-width: 100%; }
+  #sidebar.collapsed { margin-left: -100%; }
 }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Bright Smile Dental</h1>
-  <div id="status">
-    <div id="status-dot"></div>
-    <span id="status-text">Not connected</span>
+<!-- ===== SIDEBAR ===== -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h2>Configuration</h2>
+    <span id="save-indicator">Saved</span>
   </div>
-</header>
+  <div id="sidebar-scroll">
 
-<div id="chat"></div>
-<div id="live-transcript"></div>
-<div id="tool-bar"><div class="spinner"></div><span id="tool-label"></span></div>
+    <!-- Voice picker -->
+    <div class="section">
+      <div class="section-title">Voice</div>
+      <div class="voice-grid" id="voice-grid"></div>
+    </div>
 
-<div id="start-overlay">
-  <button id="start-btn">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-    <span>Start Conversation</span>
-  </button>
+    <!-- Business info -->
+    <div class="section">
+      <div class="section-title">Business</div>
+      <div class="field">
+        <label>Business Name</label>
+        <input type="text" id="cfg-name" data-key="business_name">
+      </div>
+      <div class="field">
+        <label>Receptionist Name</label>
+        <input type="text" id="cfg-recep" data-key="receptionist_name">
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="text" id="cfg-phone" data-key="phone">
+      </div>
+      <div class="field">
+        <label>Address</label>
+        <input type="text" id="cfg-address" data-key="address">
+      </div>
+    </div>
+
+    <!-- Hours -->
+    <div class="section">
+      <div class="section-title">Hours</div>
+      <div class="hours-grid" id="hours-grid"></div>
+    </div>
+
+    <!-- Services -->
+    <div class="section">
+      <div class="section-title">Services</div>
+      <div class="list-items" id="services-list"></div>
+      <button class="add-btn" onclick="addService()">+ Add Service</button>
+    </div>
+
+    <!-- Providers -->
+    <div class="section">
+      <div class="section-title">Providers</div>
+      <div class="list-items" id="providers-list"></div>
+      <button class="add-btn" onclick="addProvider()">+ Add Provider</button>
+    </div>
+
+    <!-- Insurance -->
+    <div class="section">
+      <div class="section-title">Insurance Accepted</div>
+      <div class="list-items" id="insurance-list"></div>
+      <button class="add-btn" onclick="addInsurance()">+ Add Plan</button>
+    </div>
+
+    <!-- Calendar -->
+    <div class="section">
+      <div class="section-title">Appointments</div>
+      <div class="calendar" id="calendar"></div>
+      <div id="booking-popover"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<div id="main">
+  <header>
+    <button id="toggle-sidebar" title="Toggle sidebar">&#9776;</button>
+    <h1 id="header-title">Receptionist</h1>
+    <div id="status">
+      <div id="status-dot"></div>
+      <span id="status-text">Not connected</span>
+    </div>
+  </header>
+
+  <div id="chat"></div>
+  <div id="live-transcript"></div>
+  <div id="tool-bar"><div class="spinner"></div><span id="tool-label"></span></div>
+
+  <div id="start-overlay">
+    <button id="start-btn">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      <span>Start Conversation</span>
+      <span class="hint">Config changes apply on next conversation</span>
+    </button>
+  </div>
 </div>
 
 <script>
-const chat       = document.getElementById("chat");
-const statusDot  = document.getElementById("status-dot");
-const statusText = document.getElementById("status-text");
-const toolBar    = document.getElementById("tool-bar");
-const toolLabel  = document.getElementById("tool-label");
-const overlay    = document.getElementById("start-overlay");
-const transcript = document.getElementById("live-transcript");
+// =====================================================================
+// Config & state
+// =====================================================================
+const VOICES = [
+  { id: "dawn",    name: "Dawn",    desc: "Professional, smooth" },
+  { id: "claire",  name: "Claire",  desc: "Lively, conversational" },
+  { id: "summer",  name: "Summer",  desc: "Empathetic, warm" },
+  { id: "zoe",     name: "Zoe",     desc: "Smooth, young" },
+  { id: "diana",   name: "Diana",   desc: "Soft, calming" },
+  { id: "grace",   name: "Grace",   desc: "Southern, warm" },
+  { id: "alexis",  name: "Alexis",  desc: "Chatty, high-pitched" },
+  { id: "audrey",  name: "Audrey",  desc: "Deeper, calming" },
+  { id: "melissa", name: "Melissa", desc: "British, clear" },
+  { id: "josh",    name: "Josh",    desc: "Professional, male" },
+  { id: "michael", name: "Michael", desc: "Deep, calming" },
+  { id: "pete",    name: "Pete",    desc: "Smooth, direct" },
+  { id: "dylan",   name: "Dylan",   desc: "Energetic, chatty" },
+  { id: "andy",    name: "Andy",    desc: "Soft, young" },
+  { id: "brian",   name: "Brian",   desc: "Expressive, nasal" },
+  { id: "nathan",  name: "Nathan",  desc: "Deep, older" },
+  { id: "kai",     name: "Kai",     desc: "Slow, ASMR" },
+  { id: "will",    name: "Will",    desc: "British, narrative" },
+];
 
-let audioCtx, ws, stream, sessionReady = false;
-let nextPlayTime = 0;
-let toolTimeout;
+let config = {};
+let bookings = [];
+let calYear, calMonth;
 
+// =====================================================================
+// DOM refs
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+const chat       = $("chat");
+const statusDot  = $("status-dot");
+const statusText = $("status-text");
+const toolBar    = $("tool-bar");
+const toolLabel  = $("tool-label");
+const overlay    = $("start-overlay");
+const transcript = $("live-transcript");
+
+let audioCtx, ws, stream, sessionReady = false, nextPlayTime = 0, toolTimeout;
+
+// =====================================================================
+// Config loading & saving
+// =====================================================================
+async function loadConfig() {
+  const res = await fetch("/api/config");
+  config = await res.json();
+  renderConfig();
+}
+
+let saveTimer;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+    const ind = $("save-indicator");
+    ind.classList.add("visible");
+    setTimeout(() => ind.classList.remove("visible"), 1500);
+  }, 400);
+}
+
+async function loadBookings() {
+  const res = await fetch("/api/bookings");
+  bookings = await res.json();
+  renderCalendar();
+}
+
+// =====================================================================
+// Render config UI
+// =====================================================================
+function renderConfig() {
+  $("header-title").textContent = config.business_name || "Receptionist";
+
+  // Voice grid
+  const vg = $("voice-grid");
+  vg.innerHTML = "";
+  VOICES.forEach((v) => {
+    const card = document.createElement("div");
+    card.className = "voice-card" + (config.voice === v.id ? " selected" : "");
+    card.innerHTML = `<div class="voice-name">${v.name}</div><div class="voice-desc">${v.desc}</div>`;
+    card.onclick = () => {
+      config.voice = v.id;
+      scheduleSave();
+      vg.querySelectorAll(".voice-card").forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+    };
+    vg.appendChild(card);
+  });
+
+  // Text fields
+  document.querySelectorAll(".field input[data-key]").forEach((inp) => {
+    inp.value = config[inp.dataset.key] || "";
+    inp.oninput = () => {
+      config[inp.dataset.key] = inp.value;
+      if (inp.dataset.key === "business_name") {
+        $("header-title").textContent = inp.value || "Receptionist";
+      }
+      scheduleSave();
+    };
+  });
+
+  // Hours
+  renderHours();
+  renderServices();
+  renderProviders();
+  renderInsurance();
+
+  // Calendar
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+
+// --- Hours ---
+function renderHours() {
+  const grid = $("hours-grid");
+  grid.innerHTML = "";
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const abbr = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  days.forEach((day, i) => {
+    const row = document.createElement("div");
+    row.className = "hours-row";
+    row.innerHTML = `<span class="day">${abbr[i]}</span><input type="text" value="${config.hours?.[day] || "Closed"}">`;
+    const inp = row.querySelector("input");
+    inp.oninput = () => {
+      if (!config.hours) config.hours = {};
+      config.hours[day] = inp.value;
+      scheduleSave();
+    };
+    grid.appendChild(row);
+  });
+}
+
+// --- Services ---
+function renderServices() {
+  const list = $("services-list");
+  list.innerHTML = "";
+  (config.services || []).forEach((svc, idx) => {
+    const el = document.createElement("div");
+    el.className = "list-item";
+    el.innerHTML = `
+      <input type="text" value="${svc.name}" placeholder="Service name">
+      <div class="duration-price">
+        <input type="number" value="${svc.duration}" placeholder="min" title="Duration (min)">
+        <input type="number" value="${svc.price}" placeholder="$" title="Price ($)">
+      </div>
+      <button class="remove-btn" title="Remove">&times;</button>
+    `;
+    const inputs = el.querySelectorAll("input");
+    inputs[0].oninput = () => { config.services[idx].name = inputs[0].value; scheduleSave(); };
+    inputs[1].oninput = () => { config.services[idx].duration = +inputs[1].value; scheduleSave(); };
+    inputs[2].oninput = () => { config.services[idx].price = +inputs[2].value; scheduleSave(); };
+    el.querySelector(".remove-btn").onclick = () => {
+      config.services.splice(idx, 1);
+      scheduleSave();
+      renderServices();
+    };
+    list.appendChild(el);
+  });
+}
+function addService() {
+  if (!config.services) config.services = [];
+  config.services.push({ name: "", duration: 30, price: 0 });
+  scheduleSave();
+  renderServices();
+}
+
+// --- Providers ---
+function renderProviders() {
+  const list = $("providers-list");
+  list.innerHTML = "";
+  (config.providers || []).forEach((p, idx) => {
+    const el = document.createElement("div");
+    el.className = "list-item";
+    el.innerHTML = `<input type="text" value="${p}" placeholder="Provider name"><button class="remove-btn">&times;</button>`;
+    el.querySelector("input").oninput = (e) => { config.providers[idx] = e.target.value; scheduleSave(); };
+    el.querySelector(".remove-btn").onclick = () => { config.providers.splice(idx, 1); scheduleSave(); renderProviders(); };
+    list.appendChild(el);
+  });
+}
+function addProvider() {
+  if (!config.providers) config.providers = [];
+  config.providers.push("");
+  scheduleSave();
+  renderProviders();
+}
+
+// --- Insurance ---
+function renderInsurance() {
+  const list = $("insurance-list");
+  list.innerHTML = "";
+  (config.insurance || []).forEach((p, idx) => {
+    const el = document.createElement("div");
+    el.className = "list-item";
+    el.innerHTML = `<input type="text" value="${p}" placeholder="Plan name"><button class="remove-btn">&times;</button>`;
+    el.querySelector("input").oninput = (e) => { config.insurance[idx] = e.target.value; scheduleSave(); };
+    el.querySelector(".remove-btn").onclick = () => { config.insurance.splice(idx, 1); scheduleSave(); renderInsurance(); };
+    list.appendChild(el);
+  });
+}
+function addInsurance() {
+  if (!config.insurance) config.insurance = [];
+  config.insurance.push("");
+  scheduleSave();
+  renderInsurance();
+}
+
+// =====================================================================
+// Calendar
+// =====================================================================
+function renderCalendar() {
+  const cal = $("calendar");
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  // Booking dates for this month
+  const bookedDates = new Set();
+  bookings.forEach((b) => {
+    if (b.status === "confirmed" && b.date) {
+      bookedDates.add(b.date.toLowerCase());
+    }
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay = new Date(calYear, calMonth + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+  const today = new Date();
+
+  let html = `
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">&lsaquo;</button>
+      <span>${monthNames[calMonth]} ${calYear}</span>
+      <button class="cal-nav" onclick="calNext()">&rsaquo;</button>
+    </div>
+    <div class="cal-grid">
+      <div class="day-label">Mo</div><div class="day-label">Tu</div><div class="day-label">We</div>
+      <div class="day-label">Th</div><div class="day-label">Fr</div><div class="day-label">Sa</div><div class="day-label">Su</div>
+  `;
+
+  // Leading days from prev month
+  const prevLast = new Date(calYear, calMonth, 0).getDate();
+  for (let i = startDow - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month">${prevLast - i}</div>`;
+  }
+
+  // This month
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const isToday = d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const hasBooking = bookedDates.has(dateStr);
+    // Also check loose matches (e.g. "April 15" etc.)
+    const looseDateStr = `${monthNames[calMonth].toLowerCase()} ${d}`;
+    const hasBookingLoose = bookings.some(
+      (b) => b.status === "confirmed" && b.date && b.date.toLowerCase().includes(looseDateStr)
+    );
+    const cls = [
+      "cal-day",
+      isToday ? "today" : "",
+      (hasBooking || hasBookingLoose) ? "has-booking" : "",
+    ].filter(Boolean).join(" ");
+    html += `<div class="${cls}" onclick="showBookings('${dateStr}', '${monthNames[calMonth]} ${d}, ${calYear}')">${d}</div>`;
+  }
+
+  // Trailing days
+  const totalCells = startDow + lastDay.getDate();
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-day other-month">${i}</div>`;
+  }
+
+  html += `</div>`;
+  cal.innerHTML = html;
+}
+
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+
+function showBookings(dateStr, displayDate) {
+  const pop = $("booking-popover");
+  const dayBookings = bookings.filter((b) => {
+    if (b.status !== "confirmed" || !b.date) return false;
+    return b.date === dateStr || b.date.toLowerCase().includes(displayDate.toLowerCase().replace(`, ${calYear}`, "").toLowerCase());
+  });
+
+  if (dayBookings.length === 0) {
+    pop.innerHTML = `<h4>${displayDate}</h4><div class="no-bookings">No appointments</div>`;
+  } else {
+    pop.innerHTML = `<h4>${displayDate}</h4>` + dayBookings.map((b) =>
+      `<div class="booking-entry"><strong>${b.patient_name}</strong> — ${b.service} at ${b.time}<br>${b.confirmation}</div>`
+    ).join("");
+  }
+  pop.classList.add("visible");
+}
+
+// =====================================================================
+// Sidebar toggle
+// =====================================================================
+$("toggle-sidebar").onclick = () => {
+  $("sidebar").classList.toggle("collapsed");
+};
+
+// =====================================================================
+// Audio & voice agent (unchanged core logic)
+// =====================================================================
 function setStatus(label, cls) {
   statusText.textContent = label;
   statusDot.className = cls || "";
@@ -207,23 +899,19 @@ function addMessage(role, text, interrupted) {
 
 function showToolActivity(name) {
   const labels = {
-    get_business_info: "Looking up info…",
-    check_availability: "Checking availability…",
-    book_appointment: "Booking appointment…",
-    cancel_appointment: "Cancelling appointment…",
-    transfer_call: "Connecting you…",
+    get_business_info: "Looking up info...",
+    check_availability: "Checking availability...",
+    book_appointment: "Booking appointment...",
+    cancel_appointment: "Cancelling appointment...",
+    transfer_call: "Connecting you...",
   };
-  toolLabel.textContent = labels[name] || `Running ${name}…`;
+  toolLabel.textContent = labels[name] || `Running ${name}...`;
   toolBar.classList.add("visible");
   clearTimeout(toolTimeout);
   toolTimeout = setTimeout(() => toolBar.classList.remove("visible"), 4000);
 }
+function hideToolActivity() { toolBar.classList.remove("visible"); }
 
-function hideToolActivity() {
-  toolBar.classList.remove("visible");
-}
-
-/* --- Playback --- */
 function playPCM16(int16) {
   if (!audioCtx) return;
   const buf = audioCtx.createBuffer(1, int16.length, 24000);
@@ -237,10 +925,8 @@ function playPCM16(int16) {
   src.start(nextPlayTime);
   nextPlayTime += buf.duration;
 }
-
 function clearPlayback() { nextPlayTime = 0; }
 
-/* --- Event handler --- */
 function handleEvent(event) {
   switch (event.type) {
     case "session.ready":
@@ -266,6 +952,10 @@ function handleEvent(event) {
       break;
     case "tool.call":
       showToolActivity(event.name);
+      // Refresh bookings after booking tool
+      if (event.name === "book_appointment" || event.name === "cancel_appointment") {
+        setTimeout(loadBookings, 1500);
+      }
       break;
     case "reply.audio": {
       setStatus("Speaking", "speaking");
@@ -289,24 +979,15 @@ function handleEvent(event) {
   }
 }
 
-/* --- Start --- */
-document.getElementById("start-btn").addEventListener("click", async () => {
+$("start-btn").addEventListener("click", async () => {
   overlay.classList.add("hidden");
-  setStatus("Connecting…", "");
+  setStatus("Connecting...", "");
 
   audioCtx = new AudioContext({ sampleRate: 24000 });
-
   stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      sampleRate: 24000,
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
+    audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   });
 
-  /* Capture worklet */
   const captureCode = `
   class CaptureProcessor extends AudioWorkletProcessor {
     constructor() { super(); this.buffer = new Float32Array(0); }
@@ -336,34 +1017,30 @@ document.getElementById("start-btn").addEventListener("click", async () => {
   `;
   const blob = new Blob([captureCode], { type: "application/javascript" });
   await audioCtx.audioWorklet.addModule(URL.createObjectURL(blob));
-
   const source = audioCtx.createMediaStreamSource(stream);
   const captureNode = new AudioWorkletNode(audioCtx, "capture-processor");
   source.connect(captureNode);
 
-  /* WebSocket */
   ws = new WebSocket(`ws://${location.host}/ws`);
-
   captureNode.port.onmessage = (e) => {
     if (!sessionReady || ws.readyState !== WebSocket.OPEN) return;
     const bytes = new Uint8Array(e.data);
     let binary = "";
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    const b64 = btoa(binary);
-    ws.send(JSON.stringify({ type: "input.audio", audio: b64 }));
+    ws.send(JSON.stringify({ type: "input.audio", audio: btoa(binary) }));
   };
-
-  ws.addEventListener("message", (msg) => {
-    const event = JSON.parse(msg.data);
-    handleEvent(event);
-  });
-
+  ws.addEventListener("message", (msg) => handleEvent(JSON.parse(msg.data)));
   ws.addEventListener("close", () => {
     setStatus("Disconnected", "");
     if (stream) stream.getTracks().forEach((t) => t.stop());
     if (audioCtx) audioCtx.close();
   });
 });
+
+// =====================================================================
+// Init
+// =====================================================================
+loadConfig().then(loadBookings);
 </script>
 </body>
 </html>
