@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bright Smile Dental — Receptionist</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0f1117;
+  color: #e1e4ea;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #1e2130;
+  background: #151722;
+}
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+#status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8b8fa3;
+}
+#status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b3f54;
+  transition: background 0.3s;
+}
+#status-dot.ready     { background: #22c55e; }
+#status-dot.listening { background: #3b82f6; animation: pulse 1s infinite; }
+#status-dot.speaking  { background: #a855f7; animation: pulse 1.2s infinite; }
+#status-dot.processing{ background: #eab308; }
+#status-dot.error     { background: #ef4444; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Chat area */
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  line-height: 1.45;
+  word-wrap: break-word;
+}
+.msg.user {
+  align-self: flex-end;
+  background: #2563eb;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg.agent {
+  align-self: flex-start;
+  background: #1e2130;
+  color: #e1e4ea;
+  border-bottom-left-radius: 4px;
+}
+.msg.agent.interrupted {
+  opacity: 0.5;
+}
+
+/* Tool indicator */
+#tool-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  font-size: 12px;
+  color: #8b8fa3;
+  border-top: 1px solid #1e2130;
+}
+#tool-bar.visible { display: flex; }
+#tool-bar .spinner {
+  width: 14px; height: 14px;
+  border: 2px solid #3b3f54;
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Start overlay */
+#start-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 17, 23, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+#start-overlay.hidden { display: none; }
+
+#start-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 48px;
+  border: 2px solid #2563eb;
+  border-radius: 20px;
+  background: #151722;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#start-btn:hover {
+  background: #1e2130;
+  border-color: #3b82f6;
+  transform: scale(1.02);
+}
+#start-btn svg {
+  width: 48px; height: 48px;
+  fill: #2563eb;
+}
+#start-btn span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Transcript overlay */
+#live-transcript {
+  padding: 0 24px 12px;
+  font-size: 13px;
+  color: #6b7280;
+  min-height: 20px;
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bright Smile Dental</h1>
+  <div id="status">
+    <div id="status-dot"></div>
+    <span id="status-text">Not connected</span>
+  </div>
+</header>
+
+<div id="chat"></div>
+<div id="live-transcript"></div>
+<div id="tool-bar"><div class="spinner"></div><span id="tool-label"></span></div>
+
+<div id="start-overlay">
+  <button id="start-btn">
+    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+    <span>Start Conversation</span>
+  </button>
+</div>
+
+<script>
+const chat       = document.getElementById("chat");
+const statusDot  = document.getElementById("status-dot");
+const statusText = document.getElementById("status-text");
+const toolBar    = document.getElementById("tool-bar");
+const toolLabel  = document.getElementById("tool-label");
+const overlay    = document.getElementById("start-overlay");
+const transcript = document.getElementById("live-transcript");
+
+let audioCtx, ws, stream, sessionReady = false;
+let nextPlayTime = 0;
+let toolTimeout;
+
+function setStatus(label, cls) {
+  statusText.textContent = label;
+  statusDot.className = cls || "";
+}
+
+function addMessage(role, text, interrupted) {
+  const div = document.createElement("div");
+  div.className = `msg ${role}` + (interrupted ? " interrupted" : "");
+  div.textContent = text + (interrupted ? " (interrupted)" : "");
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showToolActivity(name) {
+  const labels = {
+    get_business_info: "Looking up info…",
+    check_availability: "Checking availability…",
+    book_appointment: "Booking appointment…",
+    cancel_appointment: "Cancelling appointment…",
+    transfer_call: "Connecting you…",
+  };
+  toolLabel.textContent = labels[name] || `Running ${name}…`;
+  toolBar.classList.add("visible");
+  clearTimeout(toolTimeout);
+  toolTimeout = setTimeout(() => toolBar.classList.remove("visible"), 4000);
+}
+
+function hideToolActivity() {
+  toolBar.classList.remove("visible");
+}
+
+/* --- Playback --- */
+function playPCM16(int16) {
+  if (!audioCtx) return;
+  const buf = audioCtx.createBuffer(1, int16.length, 24000);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < int16.length; i++) ch[i] = int16[i] / 32768;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (nextPlayTime < now) nextPlayTime = now;
+  src.start(nextPlayTime);
+  nextPlayTime += buf.duration;
+}
+
+function clearPlayback() { nextPlayTime = 0; }
+
+/* --- Event handler --- */
+function handleEvent(event) {
+  switch (event.type) {
+    case "session.ready":
+      sessionReady = true;
+      setStatus("Ready", "ready");
+      break;
+    case "input.speech.started":
+      setStatus("Listening", "listening");
+      clearPlayback();
+      break;
+    case "input.speech.stopped":
+      setStatus("Processing", "processing");
+      break;
+    case "transcript.user.delta":
+      transcript.textContent = event.text || "";
+      break;
+    case "transcript.user":
+      transcript.textContent = "";
+      addMessage("user", event.text);
+      break;
+    case "transcript.agent":
+      addMessage("agent", event.text, event.interrupted);
+      break;
+    case "tool.call":
+      showToolActivity(event.name);
+      break;
+    case "reply.audio": {
+      setStatus("Speaking", "speaking");
+      const binary = atob(event.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const pcm16 = new Int16Array(bytes.buffer);
+      playPCM16(pcm16);
+      break;
+    }
+    case "reply.done":
+      hideToolActivity();
+      if (event.status === "interrupted") clearPlayback();
+      setStatus("Ready", "ready");
+      break;
+    case "error":
+    case "session.error":
+      console.error(event);
+      setStatus("Error: " + (event.message || event.code), "error");
+      break;
+  }
+}
+
+/* --- Start --- */
+document.getElementById("start-btn").addEventListener("click", async () => {
+  overlay.classList.add("hidden");
+  setStatus("Connecting…", "");
+
+  audioCtx = new AudioContext({ sampleRate: 24000 });
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      sampleRate: 24000,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+
+  /* Capture worklet */
+  const captureCode = `
+  class CaptureProcessor extends AudioWorkletProcessor {
+    constructor() { super(); this.buffer = new Float32Array(0); }
+    process(inputs) {
+      const input = inputs[0][0];
+      if (!input) return true;
+      const merged = new Float32Array(this.buffer.length + input.length);
+      merged.set(this.buffer);
+      merged.set(input, this.buffer.length);
+      const CHUNK = 1200;
+      let offset = 0;
+      while (offset + CHUNK <= merged.length) {
+        const slice = merged.subarray(offset, offset + CHUNK);
+        const pcm16 = new Int16Array(CHUNK);
+        for (let i = 0; i < CHUNK; i++) {
+          const s = Math.max(-1, Math.min(1, slice[i]));
+          pcm16[i] = s < 0 ? s * 32768 : s * 32767;
+        }
+        this.port.postMessage(pcm16.buffer, [pcm16.buffer]);
+        offset += CHUNK;
+      }
+      this.buffer = merged.subarray(offset);
+      return true;
+    }
+  }
+  registerProcessor("capture-processor", CaptureProcessor);
+  `;
+  const blob = new Blob([captureCode], { type: "application/javascript" });
+  await audioCtx.audioWorklet.addModule(URL.createObjectURL(blob));
+
+  const source = audioCtx.createMediaStreamSource(stream);
+  const captureNode = new AudioWorkletNode(audioCtx, "capture-processor");
+  source.connect(captureNode);
+
+  /* WebSocket */
+  ws = new WebSocket(`ws://${location.host}/ws`);
+
+  captureNode.port.onmessage = (e) => {
+    if (!sessionReady || ws.readyState !== WebSocket.OPEN) return;
+    const bytes = new Uint8Array(e.data);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
+    ws.send(JSON.stringify({ type: "input.audio", audio: b64 }));
+  };
+
+  ws.addEventListener("message", (msg) => {
+    const event = JSON.parse(msg.data);
+    handleEvent(event);
+  });
+
+  ws.addEventListener("close", () => {
+    setStatus("Disconnected", "");
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (audioCtx) audioCtx.close();
+  });
+});
+</script>
+</body>
+</html>
