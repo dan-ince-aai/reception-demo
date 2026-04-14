@@ -1,6 +1,6 @@
 # Receptionist Voice Agent Demo
 
-A real-time voice agent that acts as a dental office receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/speech-to-speech). The agent answers phone calls, checks appointment availability, books appointments, and transfers callers to a live person when needed.
+A real-time voice agent that acts as a dental office receptionist, built with [AssemblyAI's Voice Agent API](https://www.assemblyai.com/docs/voice-agents/speech-to-speech). The agent answers phone calls, checks appointment availability, books appointments, and transfers callers to a live person when needed.
 
 ## What it does
 
@@ -50,7 +50,7 @@ The booking functions (`_create_booking`, `_check_availability`, etc.) use in-me
 
 ### Voice
 
-The agent uses the `claire` voice (lively, conversational). See the [AssemblyAI voice list](https://www.assemblyai.com/docs/speech-to-speech) for other options — just change the `voice` field in `session_config()`.
+The agent uses the `claire` voice (lively, conversational). See the [AssemblyAI voice list](https://www.assemblyai.com/docs/voice-agents/speech-to-speech) for other options — just change the `voice` field in `session_config()`.
 
 ## Requirements
 
